@@ -60,6 +60,11 @@ if (hasFrontendBuild) {
 // Basic error handler
 app.use((err, req, res, next) => {
   console.error(err);
+  // In non-production environments include the error message and stack
+  if (process.env.NODE_ENV !== "production") {
+    return res.status(500).json({ error: "internal server error", message: err.message, stack: err.stack });
+  }
+
   res.status(500).json({ error: "internal server error" });
 });
 
