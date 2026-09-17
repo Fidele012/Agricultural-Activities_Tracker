@@ -2,7 +2,9 @@
 // In production, the built frontend is served by the same Express app, so a
 // relative path works there too. VITE_API_URL lets you point at a separately
 // deployed backend (see README "Deploying frontend and backend separately").
-const API_BASE = `${import.meta.env.VITE_API_URL || ""}/tasks`;
+const rawApiUrl = import.meta.env.VITE_API_URL || "";
+const apiRoot = rawApiUrl.replace(/\/$/, ""); // remove trailing slash if present
+const API_BASE = `${apiRoot}/tasks`;
 
 class ApiError extends Error {
   constructor(message, status, details) {
