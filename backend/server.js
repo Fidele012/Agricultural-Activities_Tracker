@@ -7,11 +7,29 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // If the frontend is deployed separately (e.g. on Vercel) set FRONTEND_ORIGIN
-// to its URL so only that origin can call the API. Left unset, all origins
-// are allowed, which is fine for local dev and for the single-service
-// deployment where the frontend is served from this same app.
-const allowedOrigin = process.env.FRONTEND_ORIGIN;
-app.use(cors(allowedOrigin ? { origin: allowedOrigin } : undefined));
+// to one or more comma-separated origins (no trailing slash), e.g.
+//  https://my-site.vercel.app,https://my-site-branch.vercel.app
+// If unset, all origins are allowed (useful for quick testing).
+const rawFrontendOrigin = process.env.FRONTEND_ORIGIN;
+let corsOptions = undefined;
+if (rawFrontendOrigin) {
+  const allowedOrigins = rawFrontendOrigin
+    .split(/\s*,\s*/)
+    .map((o) => o.replace(/\/$/, "")); // remove trailing slash if present
+
+  corsOptions = {
+    origin: (origin, callback) => {
+      // Allow non-browser requests (no origin) and allowed origins
+      if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  };
+}
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/health", (req, res) => res.json({ ok: true }));
