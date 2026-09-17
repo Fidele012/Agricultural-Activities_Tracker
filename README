@@ -1,0 +1,299 @@
+# Agricultural Activities Tracker
+
+A simple, farmer-focused activity tracker to plan and monitor agricultural
+tasks and operations — sowing, weeding, irrigation, harvesting, and other
+field activities. Create activities, track status (Not Started / In Progress /
+Completed), set priority, search and filter, and deploy easily to common
+Node hosting platforms.
+
+## Technologies used
+
+**Frontend**
+- React 19 (Vite, plain JavaScript — no TypeScript, no UI framework)
+- Custom CSS design system (CSS variables), no Tailwind/Bootstrap
+- Plain `fetch` for API calls — no Axios, no state-management library
+  (component state + one small Context for toast notifications is enough
+  for this app's size)
+
+**Backend**
+- Node.js + Express — REST API
+- `better-sqlite3` — synchronous SQLite driver
+- `cors` — cross-origin access, configurable for split deployments
+
+**Database**
+- SQLite (single file, `backend/tasks.db`), schema created automatically on
+  first run — no separate database server to install or manage
+
+No build tooling beyond Vite, no ORM, no external services required to run
+this locally.
+
+## Project structure
+
+```
+task-manager/
+├── backend/
+│   ├── db.js              # SQLite connection + schema (creates tasks table)
+│   ├── server.js          # Express app: middleware, static frontend, routes
+│   ├── routes/
+│   │   └── tasks.js       # All /tasks REST endpoints + validation
+│   └── package.json
+└── frontend/
+    ├── index.html
+    ├── vite.config.js     # dev proxy to the backend on :4000
+    ├── package.json
+    ├── public/
+    │   └── leaf.svg
+    └── src/
+        ├── main.jsx           # React root, wraps App in ToastProvider
+        ├── App.jsx            # Top-level state, data fetching, shortcuts
+        ├── api.js             # fetch wrapper for the REST API
+        ├── utils.js           # relative-time + greeting helpers
+        ├── index.css          # design tokens (color, type, spacing)
+        ├── app.css            # component styles
+        ├── hooks/
+        │   ├── useTheme.js    # day/night mode, persisted to localStorage
+        │   └── useToast.jsx   # toast notification context
+        └── components/
+            ├── TopBar.jsx
+            ├── GrowthPanel.jsx   # stats + animated progress ring
+            ├── TaskForm.jsx      # create/edit form
+            ├── FilterBar.jsx     # status chips + search
+            ├── TaskList.jsx
+            ├── TaskCard.jsx
+            └── EmptyState.jsx
+```
+
+## How to run it locally
+
+Requires Node.js 18+ (tested on Node 22).
+
+**1. Start the backend** (in one terminal):
+```bash
+cd backend
+npm install
+npm start
+```
+This starts the API on `http://localhost:4000` and creates `tasks.db`
+automatically.
+
+**2. Start the frontend** (in a second terminal):
+```bash
+cd frontend
+npm install
+npm run dev
+```
+This starts the Vite dev server (usually `http://localhost:5173`) and
+proxies any `/tasks` or `/health` request to the backend on port 4000, so
+open **http://localhost:5173** and it just works — no extra config.
+
+### Running as a single process (production-style)
+
+Build the frontend, then let the Express server serve it:
+```bash
+cd frontend && npm install && npm run build
+cd ../backend && npm install && npm start
+```
+Open **http://localhost:4000** — Express serves the built React app and the
+API from the same origin. This is exactly how it runs in the single-service
+deployment described below.
+
+## How the database is set up
+
+No manual setup needed. On startup, `backend/db.js`:
+1. Opens (or creates) `backend/tasks.db`, a local SQLite file.
+2. Runs `CREATE TABLE IF NOT EXISTS tasks (...)` to ensure the schema exists.
+
+**`tasks` table:**
+
+| Column      | Type    | Notes                                        |
+|-------------|---------|-----------------------------------------------|
+| id          | INTEGER | Primary key, auto-increment                  |
+| title       | TEXT    | Required (activity name)                      |
+| description | TEXT    | Optional, details about the activity         |
+| status      | TEXT    | `Not Started`, `Pending` (In Progress), `Completed` |
+| priority    | TEXT    | `Low`, `Medium`, or `High` (CHECK constraint) |
+| createdAt   | TEXT    | ISO 8601 timestamp, set server-side           |
+
+To reset the data, stop the server and delete `backend/tasks.db` (plus the
+`-wal`/`-shm` files if present) — it's recreated empty on next start.
+
+To point at a different SQLite file location (useful in deployment, see
+below), set `DB_PATH`:
+```bash
+DB_PATH=/data/tasks.db npm start
+```
+
+## API reference
+
+Base URL: `http://localhost:4000` (or wherever the backend is deployed)
+
+| Method | Endpoint            | Purpose                                                        |
+|--------|----------------------|------------------------------------------------------------------|
+| GET    | `/tasks`             | List tasks. Supports `?status=`, `?priority=`, `?search=`       |
+| GET    | `/tasks/:id`         | Get a single task                                                |
+| POST   | `/tasks`              | Create a task                                                    |
+| PUT    | `/tasks/:id`          | Update a task (full or partial body)                             |
+| PATCH  | `/tasks/:id/status`   | Convenience endpoint to just set status                          |
+| DELETE | `/tasks/:id`          | Delete a task                                                    |
+| GET    | `/health`             | Health check                                                     |
+
+**Create/update body shape:**
+```json
+{
+  "title": "Water the tomatoes",
+  "description": "Morning routine",
+  "status": "Pending",
+  "priority": "High"
+}
+```
+`title` is the only required field on create. `status` defaults to
+`Pending` and `priority` defaults to `Medium` if omitted. Invalid `status`
+or `priority` values return `400` with a descriptive error.
+
+## Frontend features
+
+- Create, edit, delete, and toggle activities, with optimistic status updates
+- Filter by status (All / Pending / Completed) and live search, both backed
+  by real `?status=`/`?search=` query params on the API — not client-side
+  filtering of a full list
+- A "growth ring" stats panel — tasks planted / growing / harvested, with
+  an animated completion percentage
+- Day/night theme toggle, remembered across visits
+- Toast notifications for create/update/delete instead of browser alerts
+- Inline two-step delete confirmation (no `window.confirm` popup)
+- Keyboard shortcuts: `n` focuses the new-task field, `/` focuses search,
+  `Esc` cancels an in-progress edit
+- Server-side field validation surfaced inline in the form, not just as a
+  failed request
+- Responsive down to mobile, visible keyboard focus states, and
+  `prefers-reduced-motion` respected
+
+## Technical decisions
+
+- **better-sqlite3 over an async driver**: synchronous calls keep the route
+  handlers simple, and SQLite means zero external services — the backend
+  runs from `npm install && npm start` with nothing else to provision.
+- **Plain React + Vite, no TypeScript, no state library**: the app's state
+  is a handful of `useState` calls in `App.jsx`; introducing Redux/Zustand
+  or TypeScript would add ceremony without solving a real problem at this
+  size, and it's easier to explain and defend a smaller surface area.
+- **One server for API + frontend in the default deployment path**: avoids
+  CORS/proxy configuration in production — everything is reachable from one
+  origin. `cors` is still configurable via `FRONTEND_ORIGIN` for the split
+  deployment option below.
+- **Validation lives in the route layer** (`routes/tasks.js`): required
+  fields and enum checks (`status`, `priority`) are enforced server-side
+  independent of what the client sends, returning `400` with field-level
+  errors.
+- **Separate `PATCH /tasks/:id/status`**: the spec's "mark as Pending or
+  Completed" action is a single field, so a small dedicated endpoint keeps
+  the common case a single clear API call, while `PUT /tasks/:id` still
+  supports editing everything at once.
+- **Optimistic UI on status toggling**: the checkbox updates instantly and
+  rolls back with a toast if the request fails, so the app feels responsive
+  on a real network.
+
+## Deploying the application
+
+The app tracks agricultural activities and consists of a React frontend and
+an Express backend that uses a single SQLite file. You can deploy as a
+single service (backend serves frontend) or split frontend and backend.
+
+This repository includes example GitHub Actions workflows that automate
+deploys on push: a frontend deploy to Vercel and a backend deploy trigger
+for Render. To use them you must add repository secrets (see below).
+
+### Option A — single service (recommended, matches this repo's default setup)
+
+Any platform that runs a persistent Node process with an attached disk
+works: **Render**, **Railway**, or **Fly.io**. Steps below use Render as the
+concrete example.
+
+1. Push this repository to GitHub.
+2. In Render, create a **New Web Service** from the repo.
+3. **Build command:**
+   ```
+   cd frontend && npm install && npm run build && cd ../backend && npm install
+   ```
+4. **Start command:**
+   ```
+   cd backend && npm start
+   ```
+5. **Environment variables:**
+   - `PORT` — Render sets this automatically; the app already reads
+     `process.env.PORT`.
+   - `DB_PATH` — set to a path on a persistent disk, e.g. `/data/tasks.db`
+     (see next step).
+6. **Add a persistent disk** (Render → your service → Disks) mounted at
+   `/data`. Without this, `tasks.db` lives on the container's ephemeral
+   filesystem and **is wiped on every redeploy** — the disk is what makes
+   the data durable.
+7. Deploy. Render gives you a URL like `https://sprout-tasks.onrender.com`
+   serving both the UI and the API.
+
+The same recipe (build the frontend, start the backend, attach a volume for
+`tasks.db`) works on Railway (Volumes) or Fly.io (`fly volumes create`).
+
+### Option B — frontend and backend deployed separately
+
+Use this if you want the frontend on a CDN-backed static host (Vercel,
+Netlify) independent from the API.
+
+**Backend** (Render, Railway, or Fly.io — a persistent Node service, same
+disk caveat as above):
+1. Deploy the `backend/` folder as its own service (root directory:
+   `backend`, build command: `npm install`, start command: `npm start`).
+2. Set `DB_PATH` to a persistent-disk path as in Option A.
+3. Set `FRONTEND_ORIGIN` to your deployed frontend's URL, e.g.
+   `https://sprout-tasks.vercel.app` — this restricts the API's CORS policy
+   to that origin instead of allowing all origins.
+4. Note the backend's public URL, e.g. `https://sprout-api.onrender.com`.
+
+**Frontend** (Vercel or Netlify):
+1. Import the repo, set the project root to `frontend/`.
+2. Build command: `npm run build`. Output directory: `dist`.
+3. Add an environment variable `VITE_API_URL` set to your backend's URL
+   from above (e.g. `https://sprout-api.onrender.com`) — `src/api.js`
+   already reads this at build time and prefixes every API call with it.
+4. Deploy. Vercel/Netlify gives you a URL like
+   `https://sprout-tasks.vercel.app` for the UI, talking to the backend
+   over the internet.
+
+### A note on SQLite in production
+
+SQLite is a single file on disk, which is exactly why the deployment steps
+above call out a **persistent disk/volume** — most container platforms
+otherwise reset the filesystem on every deploy or restart, silently wiping
+your tasks. This is a fine, honest trade-off for an app this size (and easy
+to defend: "it's a file, so it needs a volume, unlike a managed Postgres
+instance"); if the app needed to scale across multiple server instances,
+that would be the point to migrate to a hosted Postgres/MySQL database
+instead — the `better-sqlite3` calls are isolated to `db.js` and
+`routes/tasks.js`, so that migration wouldn't touch the frontend at all.
+
+## Not included
+
+User authentication, pagination, and automated tests were left out to keep
+the submission focused; the codebase is small enough (one Express router,
+a handful of React components) that any of these could be added
+incrementally without restructuring.
+
+## Live demo
+
+Not deployed by default — follow "Deploying the application" above to put
+it online, then add the live URL here.
+
+### CI / Deploy secrets (GitHub Actions)
+
+If you use the included GitHub Actions workflows to deploy on push, add these
+secrets to the repository (Settings → Secrets → Actions):
+
+- `VERCEL_TOKEN` — Vercel personal access token
+- `VERCEL_ORG_ID` — Vercel organization id
+- `VERCEL_PROJECT_ID` — Vercel project id for the frontend
+- `RENDER_API_KEY` — Render API key to trigger backend deploys
+- `RENDER_SERVICE_ID` — Render service id for your backend
+
+If you prefer different hosts (Netlify, Railway), the repo can be wired to
+those providers instead; tell me which provider and I will add or update
+the workflow accordingly.
