@@ -9,7 +9,12 @@ if (!connectionString) {
   );
 }
 
-const pool = new Pool({ connectionString });
+const pool = new Pool({
+  connectionString,
+  // Many managed Postgres providers require SSL. Allow insecure certs here
+  // for convenience in hosted environments (Railway, Heroku). Adjust as needed.
+  ssl: connectionString ? { rejectUnauthorized: false } : false,
+});
 
 // Ensure the tasks table exists
 async function migrate() {
@@ -29,6 +34,18 @@ async function migrate() {
 migrate().catch((err) => {
   console.error("DB migration error:", err);
 });
+
+// Basic startup check to log connection errors early
+if (connectionString) {
+  pool
+    .query("SELECT 1")
+    .then(() => {
+      console.log("DB connection successful");
+    })
+    .catch((err) => {
+      console.error("DB connection test failed:", err);
+    });
+}
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
