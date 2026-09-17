@@ -3,6 +3,7 @@ const { Pool } = require("pg");
 // Use DATABASE_URL env var (Railway provides this) or fallback to a local Postgres URL
 const connectionString = process.env.DATABASE_URL || process.env.PG_URI || "";
 console.log("DEBUG connectionString host:", connectionString.split("@")[1]);
+console.log("DEBUG all PG env vars:", Object.keys(process.env).filter(k => k.startsWith("PG")).map(k => `${k}=${process.env[k]}`));
 
 if (!connectionString) {
   console.warn(
