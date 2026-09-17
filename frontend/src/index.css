@@ -1,0 +1,143 @@
+/* ---------------------------------------------------------
+   Sprout — design tokens
+   Palette: sage paper + forest ink, brick & mustard accents.
+   Deliberately steers away from cream/terracotta and
+   near-black/acid-green defaults.
+   Type: Fraunces (display) + Work Sans (body/UI)
+--------------------------------------------------------- */
+
+:root {
+  --bg: #eef3ea;
+  --surface: #ffffff;
+  --surface-alt: #f6f4ec;
+  --ink: #23312a;
+  --ink-muted: #5c6b60;
+  --ink-faint: #8b988e;
+  --border: #dbe4d6;
+  --border-strong: #c3d0bd;
+
+  --primary: #3f6b4f;
+  --primary-dark: #2c4c38;
+  --primary-soft: #e3ede3;
+
+  --accent-high: #c1543d;
+  --accent-high-soft: #f5e2dc;
+  --accent-medium: #c98b28;
+  --accent-medium-soft: #f5ecd9;
+  --accent-low: #5f7d97;
+  --accent-low-soft: #e2eaf0;
+
+  --success: #4c7a5c;
+  --success-soft: #dfece2;
+
+  --shadow-lift: 0 12px 28px -18px rgba(35, 49, 42, 0.35);
+  --shadow-soft: 0 2px 10px -6px rgba(35, 49, 42, 0.25);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --font-display: "Fraunces", "Iowan Old Style", serif;
+  --font-body: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #182420;
+  --surface: #1f2e27;
+  --surface-alt: #253630;
+  --ink: #eef3ea;
+  --ink-muted: #a9baab;
+  --ink-faint: #718475;
+  --border: #33473c;
+  --border-strong: #405a4c;
+
+  --primary: #7fb08c;
+  --primary-dark: #a6cdad;
+  --primary-soft: #253a2d;
+
+  --accent-high: #e08267;
+  --accent-high-soft: #3a2721;
+  --accent-medium: #e0b158;
+  --accent-medium-soft: #3a2f1a;
+  --accent-low: #8fb0c9;
+  --accent-low-soft: #1f2e35;
+
+  --success: #7fb08c;
+  --success-soft: #223b2b;
+
+  --shadow-lift: 0 12px 28px -16px rgba(0, 0, 0, 0.55);
+  --shadow-soft: 0 2px 10px -6px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+
+button {
+  font-family: var(--font-body);
+}
+
+input,
+textarea,
+select,
+button {
+  font-size: 15px;
+}
+
+a {
+  color: var(--primary);
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+
+/* Focus visibility — kept deliberately clear, not suppressed */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
