@@ -96,7 +96,7 @@ router.get("/", async (req, res) => {
     res.json(result.rows.map(serializeTask));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "internal server error" });
+    res.status(500).json({ error: "internal server error", message: err.message, stack: err.stack });
   }
 });
 
@@ -113,7 +113,7 @@ router.get("/:id", async (req, res) => {
     res.json(serializeTask(row));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "internal server error" });
+    res.status(500).json({ error: "internal server error", message: err.message, stack: err.stack });
   }
 });
 
@@ -133,7 +133,7 @@ router.post("/", async (req, res) => {
     res.status(201).json(serializeTask(result.rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "internal server error" });
+    res.status(500).json({ error: "internal server error", message: err.message, stack: err.stack });
   }
 });
 
@@ -175,7 +175,7 @@ router.put("/:id", async (req, res) => {
     res.json(serializeTask(updatedRes.rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "internal server error" });
+    res.status(500).json({ error: "internal server error", message: err.message, stack: err.stack });
   }
 });
 
@@ -208,7 +208,7 @@ router.patch("/:id/status", async (req, res) => {
     res.json(serializeTask(r.rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "internal server error" });
+    res.status(500).json({ error: "internal server error", message: err.message, stack: err.stack });
   }
 });
 
@@ -226,7 +226,7 @@ router.delete("/:id", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "internal server error" });
+    res.status(500).json({ error: "internal server error", message: err.message, stack: err.stack });
   }
 });
 
